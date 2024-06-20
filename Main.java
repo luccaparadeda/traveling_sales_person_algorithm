@@ -1,17 +1,13 @@
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class Main {
     // ...
-    private final static int POPULATION_SIZE = 100;
+    private static int POPULATION_SIZE = 0;
     private final static int GENERATIONS = 1000;
     private final static double MUTATION_RATE = 0.05;
     private final static double CROSSOVER_RATE = 0.9;
 
-    // Assume City class and distance function are predefined
     private static List<City> cities;
 
     public static List<List<City>> initializePopulation(List<City> cities) {
@@ -33,9 +29,6 @@ public class Main {
     }
 
     public static List<List<City>> select(List<List<City>> population, double[] fitness) {
-        // Implement a selection method, such as tournament selection, roulette wheel
-        // selection, etc.
-        // For simplicity, let's implement a random selection
         List<List<City>> selected = new ArrayList<>();
         for (int i = 0; i < population.size(); i++) {
             int randomIndex = new Random().nextInt(population.size());
@@ -45,41 +38,45 @@ public class Main {
     }
 
     public static List<List<City>> crossover(List<List<City>> selected) {
-        // Implement a crossover method, such as single-point crossover, multi-point
-        // crossover, etc.
-        // For simplicity, let's implement a single-point crossover
         List<List<City>> offspring = new ArrayList<>();
         for (int i = 0; i < selected.size(); i += 2) {
             List<City> parent1 = selected.get(i);
             List<City> parent2 = selected.get(i + 1);
-            int crossoverPoint = new Random().nextInt(parent1.size());
-            List<City> child1 = new ArrayList<>(parent1.subList(0, crossoverPoint));
-            child1.addAll(parent2.subList(crossoverPoint, parent2.size()));
-            List<City> child2 = new ArrayList<>(parent2.subList(0, crossoverPoint));
-            child2.addAll(parent1.subList(crossoverPoint, parent1.size()));
+            List<City> child1 = inversionSequenceCrossover(parent1, parent2);
+            List<City> child2 = inversionSequenceCrossover(parent2, parent1);
             offspring.add(child1);
             offspring.add(child2);
         }
         return offspring;
     }
 
+    public static List<City> inversionSequenceCrossover(List<City> parent1, List<City> parent2) {
+        List<Integer> parent1Inversion = toInversionSequence(parent1);
+        List<Integer> parent2Inversion = toInversionSequence(parent2);
+
+        int crossoverPoint = new Random().nextInt(parent1Inversion.size());
+        List<Integer> childInversion = new ArrayList<>(parent1Inversion.subList(0, crossoverPoint));
+        childInversion.addAll(parent2Inversion.subList(crossoverPoint, parent2Inversion.size()));
+
+        return fromInversionSequence(childInversion);
+    }
+
     public static void mutate(List<List<City>> offspring) {
-        // Implement a mutation method, such as swap mutation, inversion mutation, etc.
-        // For simplicity, let's implement a swap mutation
         for (List<City> individual : offspring) {
             if (Math.random() < MUTATION_RATE) {
-                int index1 = new Random().nextInt(individual.size());
-                int index2 = new Random().nextInt(individual.size());
-                Collections.swap(individual, index1, index2);
+                List<Integer> inversion = toInversionSequence(individual);
+
+                int index1 = new Random().nextInt(inversion.size());
+                int index2 = new Random().nextInt(inversion.size());
+                Collections.swap(inversion, index1, index2);
+
+                individual = fromInversionSequence(inversion);
             }
         }
     }
 
     public static List<List<City>> replace(List<List<City>> population, List<List<City>> offspring, double[] fitness,
             double[] offspringFitness) {
-        // Implement a replacement method, such as elitist replacement, steady-state
-        // replacement, etc.
-        // For simplicity, let's implement a complete replacement
         return offspring;
     }
 
@@ -102,32 +99,24 @@ public class Main {
     }
 
     public static List<City> solveTSP() {
-        // Initialize population
         List<List<City>> population = initializePopulation(cities);
 
-        // Evaluate fitness
         double[] fitness = evaluateFitness(population);
 
         double bestFitness = Double.MAX_VALUE;
         List<City> bestRoute = null;
 
-        while (true) { // Infinite loop
-            // Selection
+        while (true) {
             List<List<City>> selected = select(population, fitness);
 
-            // Crossover
             List<List<City>> offspring = crossover(selected);
 
-            // Mutation
             mutate(offspring);
 
-            // Evaluate offspring fitness
             double[] offspringFitness = evaluateFitness(offspring);
 
-            // Replacement: Create a new generation
             population = replace(population, offspring, fitness, offspringFitness);
 
-            // Check if a new best route has been found
             int bestIndex = getIndexOfBestSolution(offspringFitness);
             if (offspringFitness[bestIndex] < bestFitness) {
                 bestFitness = offspringFitness[bestIndex];
@@ -135,14 +124,13 @@ public class Main {
                 System.out.println("New best route found with distance: " + bestFitness);
             }
         }
-
     }
 
     public static List<City> loadCities(String filename) {
         List<City> cities = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
             String line;
-            reader.readLine(); // Skip the first line (year information)
+            POPULATION_SIZE = Integer.parseInt(reader.readLine()) - 1;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(" ");
                 double latitude = Double.parseDouble(parts[0]);
@@ -156,17 +144,36 @@ public class Main {
         return cities;
     }
 
-    // Main method for testing
     public static void main(String[] args) {
-        // Load or create cities
         List<City> loadedCities = loadCities("./data.txt");
 
-        // Solve TSP
         cities = loadedCities;
 
         List<City> bestRoute = solveTSP();
     }
 
-    // Other methods of the GeneticAlgorithmForTSP class
-    // ...
+    public static List<Integer> toInversionSequence(List<City> permutation) {
+        List<Integer> inversion = new ArrayList<>();
+        for (int i = 0; i < permutation.size(); i++) {
+            int inversions = 0;
+            for (int j = 0; j < i; j++) {
+                if (permutation.get(j).name.compareTo(permutation.get(i).name) > 0) {
+                    inversions++;
+                }
+            }
+            inversion.add(inversions);
+        }
+        return inversion;
+    }
+
+    public static List<City> fromInversionSequence(List<Integer> inversion) {
+        List<City> permutation = new ArrayList<>(cities);
+        for (int i = inversion.size() - 1; i >= 0; i--) {
+            int inversions = inversion.get(i);
+            City city = permutation.remove(i);
+            int newIndex = Math.min(i + inversions, permutation.size());
+            permutation.add(newIndex, city);
+        }
+        return permutation;
+    }
 }
