@@ -4,74 +4,91 @@ import java.util.*;
 public class Main {
     // ...
     private static int POPULATION_SIZE = 0;
-    private final static int GENERATIONS = 1000;
+    private static int GENERATIONS = 0;
     private final static double MUTATION_RATE = 0.05;
     private final static double CROSSOVER_RATE = 0.9;
 
     private static List<City> cities;
 
-    public static List<List<City>> initializePopulation(List<City> cities) {
-        List<List<City>> population = new ArrayList<>();
-        for (int i = 0; i < POPULATION_SIZE; i++) {
-            List<City> newIndividual = new ArrayList<>(cities);
-            Collections.shuffle(newIndividual);
-            population.add(newIndividual);
+    // public static List<List<City>> initializePopulation(List<City> cities) {
+    // List<List<City>> population = new ArrayList<>();
+    // for (int i = 0; i < POPULATION_SIZE; i++) {
+    // List<City> newIndividual = new ArrayList<>(cities);
+    // Collections.shuffle(newIndividual);
+    // population.add(newIndividual);
+    // }
+    // return population;
+    // }
+
+    // public static double[] evaluateFitness(List<List<City>> population) {
+    // double[] fitness = new double[population.size()];
+    // for (int i = 0; i < population.size(); i++) {
+    // fitness[i] = calculateTotalDistance(population.get(i));
+    // }
+    // return fitness;
+    // }
+
+    // public static List<List<City>> select(List<List<City>> population, double[]
+    // fitness) {
+    // // Implement a selection method, such as tournament selection, roulette wheel
+    // // selection, etc.
+    // // For simplicity, let's implement a random selection
+    // List<List<City>> selected = new ArrayList<>();
+    // for (int i = 0; i < population.size(); i++) {
+    // int randomIndex = new Random().nextInt(population.size());
+    // selected.add(new ArrayList<>(population.get(randomIndex)));
+    // }
+    // return selected;
+    // }
+
+    // public static List<List<City>> crossover(List<List<City>> selected) {
+    // // Implement a crossover method, such as single-point crossover, multi-point
+    // // crossover, etc.
+    // // For simplicity, let's implement a single-point crossover
+    // List<List<City>> offspring = new ArrayList<>();
+    // for (int i = 0; i < selected.size(); i += 2) {
+    // List<City> parent1 = selected.get(i);
+    // List<City> parent2 = selected.get(i + 1);
+    // int crossoverPoint = new Random().nextInt(parent1.size());
+    // List<City> child1 = new ArrayList<>(parent1.subList(0, crossoverPoint));
+    // child1.addAll(parent2.subList(crossoverPoint, parent2.size()));
+    // List<City> child2 = new ArrayList<>(parent2.subList(0, crossoverPoint));
+    // child2.addAll(parent1.subList(crossoverPoint, parent1.size()));
+    // offspring.add(child1);
+    // offspring.add(child2);
+    // }
+    // return offspring;
+    // }
+
+    public static void mutate(List<City> cities) {
+        // Implement a mutation method, such as swap mutation, inversion mutation, etc.
+        // For simplicity, let's implement a swap mutation
+        List<City> newTest = new ArrayList<>(cities);
+        int index1 = new Random().nextInt(cities.size());
+        int index2 = new Random().nextInt(cities.size());
+        Collections.swap(newTest, index1, index2);
+
+        if (index1 > index2) {
+            int temp = index1;
+            index1 = index2;
+            index2 = temp;
         }
-        return population;
-    }
 
-    public static double[] evaluateFitness(List<List<City>> population) {
-        double[] fitness = new double[population.size()];
-        for (int i = 0; i < population.size(); i++) {
-            fitness[i] = calculateTotalDistance(population.get(i));
+        while (index1 < index2) {
+            Collections.swap(newTest, index1, index2);
+            index1++;
+            index2--;
         }
-        return fitness;
-    }
 
-    public static List<List<City>> select(List<List<City>> population, double[] fitness) {
-        List<List<City>> selected = new ArrayList<>();
-        for (int i = 0; i < population.size(); i++) {
-            int randomIndex = new Random().nextInt(population.size());
-            selected.add(new ArrayList<>(population.get(randomIndex)));
-        }
-        return selected;
-    }
+        double newTestTotalDistance = calculateTotalDistance(newTest);
+        double citiesTotalDistance = calculateTotalDistance(cities);
 
-    public static List<List<City>> crossover(List<List<City>> selected) {
-        List<List<City>> offspring = new ArrayList<>();
-        for (int i = 0; i < selected.size(); i += 2) {
-            List<City> parent1 = selected.get(i);
-            List<City> parent2 = selected.get(i + 1);
-            List<City> child1 = inversionSequenceCrossover(parent1, parent2);
-            List<City> child2 = inversionSequenceCrossover(parent2, parent1);
-            offspring.add(child1);
-            offspring.add(child2);
-        }
-        return offspring;
-    }
-
-    public static List<City> inversionSequenceCrossover(List<City> parent1, List<City> parent2) {
-        List<Integer> parent1Inversion = toInversionSequence(parent1);
-        List<Integer> parent2Inversion = toInversionSequence(parent2);
-
-        int crossoverPoint = new Random().nextInt(parent1Inversion.size());
-        List<Integer> childInversion = new ArrayList<>(parent1Inversion.subList(0, crossoverPoint));
-        childInversion.addAll(parent2Inversion.subList(crossoverPoint, parent2Inversion.size()));
-
-        return fromInversionSequence(childInversion);
-    }
-
-    public static void mutate(List<List<City>> offspring) {
-        for (List<City> individual : offspring) {
-            if (Math.random() < MUTATION_RATE) {
-                List<Integer> inversion = toInversionSequence(individual);
-
-                int index1 = new Random().nextInt(inversion.size());
-                int index2 = new Random().nextInt(inversion.size());
-                Collections.swap(inversion, index1, index2);
-
-                individual = fromInversionSequence(inversion);
-            }
+        if (newTestTotalDistance < citiesTotalDistance) {
+            cities.clear();
+            cities.addAll(newTest);
+            System.out.println(cities.size());
+            System.out.println(
+                    "New best route found with distance: " + newTestTotalDistance + " GENERATION: " + GENERATIONS);
         }
     }
 
@@ -80,15 +97,15 @@ public class Main {
         return offspring;
     }
 
-    public static int getIndexOfBestSolution(double[] fitness) {
-        int bestIndex = 0;
-        for (int i = 1; i < fitness.length; i++) {
-            if (fitness[i] < fitness[bestIndex]) {
-                bestIndex = i;
-            }
-        }
-        return bestIndex;
-    }
+    // public static int getIndexOfBestSolution(double[] fitness) {
+    // int bestIndex = 0;
+    // for (int i = 1; i < fitness.length; i++) {
+    // if (fitness[i] < fitness[bestIndex]) {
+    // bestIndex = i;
+    // }
+    // }
+    // return bestIndex;
+    // }
 
     public static double calculateTotalDistance(List<City> route) {
         double totalDistance = 0;
@@ -98,31 +115,21 @@ public class Main {
         return totalDistance;
     }
 
-    public static List<City> solveTSP() {
-        List<List<City>> population = initializePopulation(cities);
+    public static void solveTSP() {
+        // Initialize population
+        // List<List<City>> population = initializePopulation(cities);
 
-        double[] fitness = evaluateFitness(population);
+        // Evaluate fitness
+        // double[] fitness = evaluateFitness(population);
 
         double bestFitness = Double.MAX_VALUE;
         List<City> bestRoute = null;
 
-        while (true) {
-            List<List<City>> selected = select(population, fitness);
+        while (true) { // Infinite loop
 
-            List<List<City>> offspring = crossover(selected);
-
-            mutate(offspring);
-
-            double[] offspringFitness = evaluateFitness(offspring);
-
-            population = replace(population, offspring, fitness, offspringFitness);
-
-            int bestIndex = getIndexOfBestSolution(offspringFitness);
-            if (offspringFitness[bestIndex] < bestFitness) {
-                bestFitness = offspringFitness[bestIndex];
-                bestRoute = new ArrayList<>(population.get(bestIndex));
-                System.out.println("New best route found with distance: " + bestFitness);
-            }
+            // Mutation
+            mutate(cities);
+            GENERATIONS++;
         }
     }
 
@@ -149,7 +156,7 @@ public class Main {
 
         cities = loadedCities;
 
-        List<City> bestRoute = solveTSP();
+        solveTSP();
     }
 
     public static List<Integer> toInversionSequence(List<City> permutation) {
